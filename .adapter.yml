@@ -1,0 +1,16 @@
+name: IPFS Chainlink external adapter
+description: A simple IPFS client Cahinlink External Adapter. The adapter supports both reading and writing over the IPFS protocol by calling an IPFS node.
+
+node_identifier: IPFS
+
+platforms:
+  - Docker
+
+data_sources:
+  - name: IPFS node
+
+parameters:
+  - action
+  - path
+  - content
+  - cid
