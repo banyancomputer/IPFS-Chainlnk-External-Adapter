@@ -6,9 +6,6 @@ node_identifier: IPFS
 platforms:
   - Docker
 
-data_sources:
-  - name: IPFS node
-
 parameters:
   - action
   - path
