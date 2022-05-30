@@ -1,13 +1,13 @@
-name: IPFS Chainlink external adapter
-description: A simple IPFS client Cahinlink External Adapter. The adapter supports both reading and writing over the IPFS protocol by calling an IPFS node.
+name: Banyan IPFS External Adapter
+description: A simple IPFS client for checking the status of files stored using the Banyan network.
 
-node_identifier: IPFS
+node_identifier: Banyan_IPFS_EA
 
 platforms:
   - Docker
 
 parameters:
-  - action
-  - path
-  - content
-  - cid
+  - cid:
+      type: string
+      description: The CID of the file to check.
+      required: true

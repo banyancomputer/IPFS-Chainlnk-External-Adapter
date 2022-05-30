@@ -1,5 +1,4 @@
 const createRequest = require('./index').createRequest
-//Te
 
 const express = require('express')
 const bodyParser = require('body-parser')

@@ -1,53 +1,68 @@
 const { Requester, Validator } = require('@chainlink/external-adapter')
 const { create } = require('ipfs-http-client')
 
-const ipfsNode = create(process.env.IPFS_NODE_ENDPOINT || "http://127.0.0.1:5001")
+// Set the parameters for our adapter
+const adapterParams = {
+  // We must receive a CID with our request
+  base: ['base', 'cid'],
+  // We (eventually) want to return a sequence of bytes
+  // quote: ['quote', 'bytes'],
 
-const uploafFile = async (path, content) => {
-  const file = { path, content }
-  const fileAdded = await ipfsNode.add(file)
-
-  return fileAdded.cid.toString()
+  // Optionally specify a path for our file
+  // path: false,
+  // Endpoint for our IPFS node. Not required as of now
+  endpoint: false
 }
 
-const readFile = async (cid) => {
-  const chunks = [];
-  for await (const chunk of ipfsNode.cat(cid)) {
-    chunks.push(chunk);
-  }
-  return chunks.toString()
+// Initialize a client to handle our requests to IPFS nodes
+// For now we're going to run this adapter locally.
+// TODO: Decide how the information for what endpoint to use should be passed
+// const ipfs_node = create(process.env.IPFS_NODE_ENDPOINT || 'http://127.0.0.1:5001')
+
+// Check the status of a file based on it's CID and an ipfs client
+const checkStatus = async (ipfsNode, cid) => {
+  const fileStatus = await ipfsNode.files.stat(cid)
+  return fileStatus.cid.toString() === cid
 }
 
+// Create a request for our endpoint
 const createRequest = async (input, callback) => {
-  try {
-    // Todo: add ChainLink Validator here
-    const jobRunID = input.id
-    const path = input.data.path
-    const content = input.data.content
-    const cid = input.data.cid
-    const action = input.data.action
+  console.debug('[EA] createRequest()')
 
-    if (action && action.toUpperCase() === 'ADD') {
-      if (!content) {
-        callback(500, Requester.errored(jobRunID, "missing 'content' param"))
-      }
-      const hash = await uploafFile(path, content)
-      callback(200, Requester.success(jobRunID, { data: { result: hash }, status: 200 }))
-    } else if (action && action.toUpperCase() === 'CAT') {
-      if (!cid) {
-        callback(500, Requester.errored(jobRunID, "missing 'cid' param"))
-      }
-      const content = await readFile(cid)
-      callback(200, Requester.success(jobRunID, { data: { result: content }, status: 200 }))
-    } else {
-      callback(500, Requester.errored(jobRunID, "missing or incorrect 'action' param"))
-    }
-    
+  // Validate the input
+  const validator = new Validator(callback, input, adapterParams)
+
+  /* Required parameters */
+
+  // The jobID specified by our calling node
+  const jobRunID = validator.validated.id
+  // The CID of the file we want to check
+  const cid = validator.validated.data.base.cid
+  // The index of the bytes we want to check
+  // const bytes = validator.validated.data.quote.bytes
+
+  /* Optional parameters */
+
+  // The path of the file we want to check
+  // const path = input.data.path || ''
+  // The endpoint of the IPFS node we want to use
+  const endpoint = input.data.endpoint || (process.env.IPFS_NODE_ENDPOINT || 'http://127.0.0.1:5001')
+
+  // Create a client to handle our requests to IPFS nodes
+  const ipfsNode = create(endpoint)
+
+  console.debug('[EA] Making request to IPFS node')
+  try {
+    // Check the status of the file
+    const status = await checkStatus(ipfsNode, cid)
+    // If the file is found, return the status
+    callback(200, Requester.success(jobRunID, { data: { result: status }, status: 200 }))
   } catch (error) {
+    console.debug('[EA] Encountered an error:', error)
+    // If the file is not found, return the error
     callback(500, Requester.errored(jobRunID, error))
   }
 }
-
 
 // This is a wrapper to allow the function to work with
 // GCP Functions
