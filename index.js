@@ -4,7 +4,7 @@ const { create } = require('ipfs-http-client')
 // Set the parameters for our adapter
 const adapterParams = {
   // We must receive a CID with our request
-  base: ['base', 'cid'],
+  cid: ['cid'],
   // We (eventually) want to return a sequence of bytes
   // quote: ['quote', 'bytes'],
   // Optionally specify a path for our file
@@ -34,7 +34,7 @@ const createRequest = async (input, callback) => {
   // The jobID specified by our calling node
   const jobRunID = validator.validated.id
   // The CID of the file we want to check
-  const cid = validator.validated.data.base.cid
+  const cid = validator.validated.data.cid
   // The index of the bytes we want to check
   // const bytes = validator.validated.data.quote.bytes
 

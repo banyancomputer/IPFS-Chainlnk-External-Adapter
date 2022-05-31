@@ -34,8 +34,8 @@ describe('createRequest', () => {
   context('error calls', () => {
     const requests = [
       /* Server errors */
-      { name: 'bad endpoint', testData: { id: jobID, data: { base: '', endpoint: 'bad' } }, statusCode: 500 },
-      { name: 'bad cid', testData: { id: jobID, data: { base: '' } }, statusCode: 500 },
+      { name: 'bad endpoint', testData: { id: jobID, data: { cid: '', endpoint: 'bad' } }, statusCode: 500 },
+      { name: 'bad cid', testData: { id: jobID, data: { cid: '' } }, statusCode: 500 },
 
       /* Client error  */
       { name: 'empty body', testData: { }, statusCode: 400 }
