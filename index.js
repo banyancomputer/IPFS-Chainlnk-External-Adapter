@@ -7,7 +7,6 @@ const adapterParams = {
   base: ['base', 'cid'],
   // We (eventually) want to return a sequence of bytes
   // quote: ['quote', 'bytes'],
-
   // Optionally specify a path for our file
   // path: false,
   // Endpoint for our IPFS node. Not required as of now
@@ -27,11 +26,14 @@ const checkStatus = async (ipfsNode, cid) => {
 
 // Create a request for our endpoint
 const createRequest = async (input, callback) => {
-  console.debug('[EA] createRequest()')
+  // console.debug('[EA] createRequest(): ', input)
 
   // Validate the input
-  const validator = new Validator(callback, input, adapterParams)
-
+  const validator = new Validator(input, adapterParams)
+  if (validator.error) {
+    // console.debug('[EA] failed validation')
+    return callback(validator.error.statusCode, validator.errored)
+  }
   /* Required parameters */
 
   // The jobID specified by our calling node
@@ -47,18 +49,18 @@ const createRequest = async (input, callback) => {
   // const path = input.data.path || ''
   // The endpoint of the IPFS node we want to use
   const endpoint = input.data.endpoint || (process.env.IPFS_NODE_ENDPOINT || 'http://127.0.0.1:5001')
+  // console.log('[EA] endpoint: ', endpoint)
 
-  // Create a client to handle our requests to IPFS nodes
-  const ipfsNode = create(endpoint)
-
-  console.debug('[EA] Making request to IPFS node')
+  // console.debug('[EA] Making request to IPFS node')
   try {
+    // Create a client to handle our requests to IPFS nodes
+    const ipfsNode = create(endpoint)
     // Check the status of the file
     const status = await checkStatus(ipfsNode, cid)
     // If the file is found, return the status
     callback(200, Requester.success(jobRunID, { data: { result: status }, status: 200 }))
   } catch (error) {
-    console.debug('[EA] Encountered an error:', error)
+    // console.debug('[EA] Encountered an error:', error)
     // If the file is not found, return the error
     callback(500, Requester.errored(jobRunID, error))
   }

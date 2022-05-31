@@ -9,7 +9,7 @@
     "start": "node app.js"
   },
   "dependencies": {
-    "@chainlink/external-adapter": "^0.2.3",
+    "@chainlink/external-adapter": "^0.2.6",
     "ipfs-http-client": "^54.0.2"
   },
   "devDependencies": {

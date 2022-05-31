@@ -25,18 +25,28 @@ describe('createRequest', () => {
       })
     })
   })
+  /*
+  Error cases:
+    - 400: Client error
+    - 500: Server error
+   */
 
   context('error calls', () => {
     const requests = [
-      { name: 'empty body', testData: { id: jobID, data: {} } },
-      { name: 'bad_cid', testData: { id: jobID, data: { base: '' } } }
+      /* Server errors */
+      { name: 'bad endpoint', testData: { id: jobID, data: { base: '', endpoint: 'bad' } }, statusCode: 500 },
+      { name: 'bad cid', testData: { id: jobID, data: { base: '' } }, statusCode: 500 },
+
+      /* Client error  */
+      { name: 'empty body', testData: { }, statusCode: 400 }
+
       // TODO: add more tests
     ]
 
     requests.forEach(req => {
       it(`${req.name}`, (done) => {
         createRequest(req.testData, (statusCode, data) => {
-          assert.equal(statusCode, 500)
+          assert.equal(statusCode, req.statusCode)
           assert.equal(data.jobRunID, jobID)
           assert.equal(data.status, 'errored')
           assert.isNotEmpty(data.error)
