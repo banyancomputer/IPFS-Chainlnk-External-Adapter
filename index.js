@@ -13,11 +13,6 @@ const adapterParams = {
   endpoint: false
 }
 
-// Initialize a client to handle our requests to IPFS nodes
-// For now we're going to run this adapter locally.
-// TODO: Decide how the information for what endpoint to use should be passed
-// const ipfs_node = create(process.env.IPFS_NODE_ENDPOINT || 'http://127.0.0.1:5001')
-
 // Check the status of a file based on it's CID and an ipfs client
 const checkStatus = async (ipfsNode, cid) => {
   const fileStatus = await ipfsNode.files.stat(cid)
