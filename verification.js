@@ -1,5 +1,14 @@
 const fs = require('fs')
 const { create } =  require('ipfs-http-client')
+var getRandomValues = require('get-random-values');
+
+/**
+ * Install: 
+ * npm install get-random-values --save
+ * 
+ * TO DO:
+ * Make sure this random library is cryptographically secure
+ */
 
 /**
  * checkFile takes the cid of a file and the initiated ipfs-http-client node and 
@@ -21,18 +30,22 @@ const checkFile = async (cid, client) => {
 }
 
 /**
- * checkBlock takes the cid of a file and the initiated ipfs-http-client node and a block
- * index and checks whether the hash of the block is equal to the cid of that block. Throws  
- * an error if that block does not exist 
+ * checkBlock takes the cid of a file and the initiated ipfs-http-client node and checks whether 
+ * the hash of a random block is equal to the cid of that block. Throws an error if that block does not exist 
  * 
  * @param {number} cid - file cid
  * @param {number} client - ipfs-http-client
  * @param {number} index - the index of the block to verify
  */
-const checkBlock = async (cid, client, index) => {
+const checkBlock = async (cid, client) => {
 
     const links = await client.object.links(cid)
     const hashes = links.map((link) => link.Hash.toString())
+    var array = new Uint8Array(1);
+    getRandomValues(array);
+    index = array[0] % hashes.length
+    console.log("Your range:", hashes.length);
+    console.log("Your lucky numbers:", index);
     if (hashes[index])
     {
         block_cid = hashes[index]
@@ -53,9 +66,9 @@ const checkBlock = async (cid, client, index) => {
 /**
 * Testing functions. File_cid corresponds to ethereum whitepaper. Currently using a non-random index.
 */
+
 const file_cid  = "Qmd63gzHfXCsJepsdTLd4cqigFa7SuCAeH6smsVoHovdbE";
 const client = create('/ip4/127.0.0.1/tcp/5001')
 const file_output = checkFile(file_cid, client)
-const index = 2
-const block_output = checkBlock(file_cid, client, index)
+const block_output = checkBlock(file_cid, client)
 
