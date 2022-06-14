@@ -1,6 +1,8 @@
 const fs = require('fs')
 const { create } =  require('ipfs-http-client')
 var getRandomValues = require('get-random-values');
+const all = require('it-all')
+
 
 /**
  * Install: 
@@ -8,7 +10,43 @@ var getRandomValues = require('get-random-values');
  * 
  * TO DO:
  * Make sure this random library is cryptographically secure
+ * 
  */
+
+/**
+ * checkCid takes a cid of a directory or file and verifies the hashes
+ * of every file in every directory and subdirectory  
+ *
+ * @param {number} cid - file cid
+ * @param {number} client - ipfs-http-client
+ */
+const checkCid = async (cid, client) => {
+
+    let object = await all(client.ls(cid));
+    const file_length = object.length
+    console.log("directory: ", object)
+    if (file_length > 1 && (object[0].path != cid)) // If it is a directory with files in it. 
+    {
+        for(i = 0; i < file_length; i++)
+        {
+            const type =  object[i].type
+            if (type == "dir")
+            {
+                console.log("SUB DIR")
+                checkCid(object[i].cid, client)
+            }
+            else
+            {
+                checkFile(object[i].cid, client);
+            }
+        }
+    }
+    else
+    {
+        console.log("NOT A DIR");
+        await checkFile(cid, client);
+    }
+}
 
 /**
  * checkFile takes the cid of a file and the initiated ipfs-http-client node and 
@@ -19,6 +57,7 @@ var getRandomValues = require('get-random-values');
  */
 const checkFile = async (cid, client) => {
 
+    console.log("ITER:", cid);
     const source = client.cat(cid)   
     const hash_v3 = (await client.add(source, onlyHash = true)).cid.toString()
     console.log("cid1_: ", hash_v3)
@@ -64,11 +103,28 @@ const checkBlock = async (cid, client) => {
 }
 
 /**
-* Testing functions. File_cid corresponds to ethereum whitepaper. Currently using a non-random index.
+* Testing functions. Eth_cid corresponds to ethereum whitepaper. file_cid_dir corresponds
+* to a directory of files on a local machine being pinned. 
 */
 
-const file_cid  = "Qmd63gzHfXCsJepsdTLd4cqigFa7SuCAeH6smsVoHovdbE";
+const file_cid_dir = "QmXnz4zcfSW9SfSfZHj6qCGvkUzHZjPZ7Y8D4woVehFpBV";
+const eth_cid = "Qmd63gzHfXCsJepsdTLd4cqigFa7SuCAeH6smsVoHovdbE"
 const client = create('/ip4/127.0.0.1/tcp/5001')
-const file_output = checkFile(file_cid, client)
-const block_output = checkBlock(file_cid, client)
 
+checkCid(eth_cid, client)
+checkCid(file_cid_dir, client)
+
+/** 
+ * I found a janky solution to the problem of determining if the file is a directory. 
+ * Background is files.stat is not working as a system call for the http client, and I 
+ * couldn't find an easy way to see if a cid is a directory or file. ls prints out links 
+ * of subblocks within a single file counterintuitively, but I realized that those subblocks
+ * have paths equal to the cid of the file, whereas when ls happens normally on a directory, the 
+ * paths of the files within the directory are not equal to the cid of the directory. Kinda 
+ * janky but works for now. 
+ * 
+ * One remaining issue is synchronicity. When I put an await on line 36, it wouldn't iterate 
+ * through the rest of the files in the initial directory. When I took it away, it did, but the files
+ * are being verified not really in order. Not a big deal but if I understood asynchronous calls better 
+ * sure there would be an easy solution.
+ */
