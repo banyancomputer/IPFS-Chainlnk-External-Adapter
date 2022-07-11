@@ -2,6 +2,11 @@ const fs = require('fs')
 const { create } =  require('ipfs-http-client')
 var getRandomValues = require('get-random-values');
 const all = require('it-all')
+//const IPFS = require('ipfs-core');
+//const CID = require('cids');
+//const json = require('multiformats/codecs/json');
+
+
 
 
 /**
@@ -12,6 +17,8 @@ const all = require('it-all')
  * Make sure this random library is cryptographically secure
  * 
  */
+
+
 
 /**
  * checkCid takes a cid of a directory or file and verifies the hashes
@@ -25,7 +32,7 @@ const checkCid = async (cid, client) => {
     let object = await all(client.ls(cid));
     const file_length = object.length
     console.log("directory: ", object)
-    if (file_length > 1 && (object[0].path != cid)) // If it is a directory with files in it. 
+    if (file_length > 1 && (object[0].path != cid)) // Janky check whether it is a directory with files in it. 
     {
         for(i = 0; i < file_length; i++)
         {
@@ -37,14 +44,14 @@ const checkCid = async (cid, client) => {
             }
             else
             {
-                checkFile(object[i].cid, client);
+                checkBlock(object[i].cid, client);
             }
         }
     }
     else
     {
         console.log("NOT A DIR");
-        await checkFile(cid, client);
+        await checkBlock(cid, client);
     }
 }
 
@@ -59,7 +66,7 @@ const checkFile = async (cid, client) => {
 
     console.log("ITER:", cid);
     const source = client.cat(cid)   
-    const hash_v3 = (await client.add(source, onlyHash = true)).cid.toString()
+    const hash_v3 = (await client.add(source, {onlyHash: true}, {pin: false})).cid.toString()
     console.log("cid1_: ", hash_v3)
     console.log("cid2_: ", cid)
     if (hash_v3 == cid)
@@ -73,11 +80,20 @@ const checkFile = async (cid, client) => {
  * the hash of a random block is equal to the cid of that block. Throws an error if that block does not exist 
  * 
  * @param {number} cid - file cid
- * @param {number} client - ipfs-http-client
+ * @param {any} client - ipfs-http-client
  * @param {number} index - the index of the block to verify
  */
 const checkBlock = async (cid, client) => {
 
+    const stat = await client.object.stat(cid)
+    console.log("Num Links: ", stat.NumLinks)
+    if (stat.NumLinks == 0 )
+    {
+        console.log("HERE")
+        checkFile(cid, client)
+    }
+    else
+    {
     const links = await client.object.links(cid)
     const hashes = links.map((link) => link.Hash.toString())
     var array = new Uint8Array(1);
@@ -88,31 +104,47 @@ const checkBlock = async (cid, client) => {
     if (hashes[index])
     {
         block_cid = hashes[index]
-        source = await client.cat(block_cid)
+        checkFile(block_cid, client)
     }
     else
         throw new Error("No block of that index")
 
-    const hash_cat = (await client.add(source, onlyHash = true)).cid.toString()
-    console.log("cid1_: ", hash_cat)
-    console.log("cid3_: ", block_cid)
-    if (hash_cat == block_cid)
-        console.log("BLOCK: SUCCESS")
-    else
-        console.log("BLOCK: FAILURE")
+    }
 }
 
+const init = async() => {
+
+    const client = create('/ip4/127.0.0.1/tcp/5001')
+    //const client = await IPFS.create();
+    const file_cid_dir = "QmXnz4zcfSW9SfSfZHj6qCGvkUzHZjPZ7Y8D4woVehFpBV";
+    const eth_cid = "Qmd63gzHfXCsJepsdTLd4cqigFa7SuCAeH6smsVoHovdbE"
+    const btc_cid = "QmRA3NWM82ZGynMbYzAgYTSXCVM14Wx1RZ8fKP42G6gjgj"
+    const bad_cid = "Qmad1E95Qb4U329aHdGpxUuPRErYuFKGYpzNo6ZL8FPxwz"
+    const default_cid = "QmSnuWmxptJZdLJpKRarxBMS2Ju2oANVrgbr2xWbie9b2D"
+
+    const dir_cid = "QmP1GeMrSECApwGnMoNgfb2MD3wvwLXzYRKx5P51SWwZyd"
+    //checkCid(eth_cid, client)
+    checkCid(btc_cid, client)
+    //checkFile(eth_cid, client)
+    //checkFile(btc_cid, client)
+
+    //const source = client.cat(default_cid)   
+    //checkBlock(eth_cid, client)
+    //checkBlock(btc_cid, client)
+    //checkBlock(dir_cid, client)
+    //checkBlock(default_cid, client)
+    //checkBlock(btc_cid, client)
+    checkCid(default_cid, client)
+}
 /**
 * Testing functions. Eth_cid corresponds to ethereum whitepaper. file_cid_dir corresponds
 * to a directory of files on a local machine being pinned. 
 */
 
-const file_cid_dir = "QmXnz4zcfSW9SfSfZHj6qCGvkUzHZjPZ7Y8D4woVehFpBV";
-const eth_cid = "Qmd63gzHfXCsJepsdTLd4cqigFa7SuCAeH6smsVoHovdbE"
-const client = create('/ip4/127.0.0.1/tcp/5001')
+init()
 
-checkCid(eth_cid, client)
-checkCid(file_cid_dir, client)
+//checkBlock(eth_cid. client)
+//checkBlock(btc_cid, client)
 
 /** 
  * I found a janky solution to the problem of determining if the file is a directory. 
