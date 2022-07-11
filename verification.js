@@ -19,7 +19,6 @@ const all = require('it-all')
  */
 
 
-
 /**
  * checkCid takes a cid of a directory or file and verifies the hashes
  * of every file in every directory and subdirectory  
@@ -112,11 +111,80 @@ const checkBlock = async (cid, client) => {
     }
 }
 
+
+
+/**
+ * 
+ * @param {array} arr 
+ * @param {any} cid 
+ * @param {number} client 
+ */
+const cid_list = async (arr, cid, client) => {
+
+    const object = await all(client.ls(cid));
+    console.log("length: ", object.length)
+    //console.log("directory: ", object)
+
+    for(let i = 0; i < object.length; i++)
+    {
+        const type =  object[i].type
+        if (type == "dir")
+        {
+            //console.log("SUB DIR")
+            await cid_list(arr, object[i].cid, client)
+        }
+        
+        else
+        {
+            //console.log("BLOCK/FILE IN DIR")
+            const big_file = await all(client.ls(object[i].cid));
+            console.log("sub_length: ", big_file.length)
+            for (let j = 0; j < big_file.length; j++)
+            {
+                arr.push(big_file[j].cid)
+            }
+        }
+    }
+}
+
+/**
+ * 
+ * @param {any} cid 
+ * @param {number} client 
+ */
+const checkBlockGivenFile = async (cid, client) => {
+
+    const links = await all(client.ls(cid));
+    if (links.length == 0 )
+    {
+        await checkFile(cid, client)
+    }
+    else
+    {
+    const links = await client.object.links(cid)
+    const hashes = links.map((link) => link.Hash.toString())
+    var array = new Uint8Array(1);
+    getRandomValues(array);
+    index = array[0] % hashes.length
+    console.log("Your range:", hashes.length);
+    console.log("Your lucky numbers:", index);
+    if (hashes[index])
+    {
+        block_cid = hashes[index]
+        await checkFile(block_cid, client)
+    }
+    else
+        throw new Error("No block of that index")
+    }
+    return true
+}
+
+
 const init = async() => {
 
     const client = create('/ip4/127.0.0.1/tcp/5001')
     //const client = await IPFS.create();
-    const file_cid_dir = "QmXnz4zcfSW9SfSfZHj6qCGvkUzHZjPZ7Y8D4woVehFpBV";
+    const file_cid_dir = "QmcUqhpc8fCdjfeuBDSSB5Xw4zp9bMLgD3QVETfz6LLR6r";
     const eth_cid = "Qmd63gzHfXCsJepsdTLd4cqigFa7SuCAeH6smsVoHovdbE"
     const btc_cid = "QmRA3NWM82ZGynMbYzAgYTSXCVM14Wx1RZ8fKP42G6gjgj"
     const bad_cid = "Qmad1E95Qb4U329aHdGpxUuPRErYuFKGYpzNo6ZL8FPxwz"
@@ -124,7 +192,7 @@ const init = async() => {
 
     const dir_cid = "QmP1GeMrSECApwGnMoNgfb2MD3wvwLXzYRKx5P51SWwZyd"
     //checkCid(eth_cid, client)
-    checkCid(btc_cid, client)
+    //checkCid(btc_cid, client)
     //checkFile(eth_cid, client)
     //checkFile(btc_cid, client)
 
@@ -134,7 +202,12 @@ const init = async() => {
     //checkBlock(dir_cid, client)
     //checkBlock(default_cid, client)
     //checkBlock(btc_cid, client)
-    checkCid(default_cid, client)
+    //checkCid(default_cid, client)
+    //const arr = []
+    //await cid_list(arr, default_cid, client)
+    // console.log("ARR: ", arr)
+
+    checkBlockGivenFile(eth_cid, client)
 }
 /**
 * Testing functions. Eth_cid corresponds to ethereum whitepaper. file_cid_dir corresponds
